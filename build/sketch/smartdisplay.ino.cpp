@@ -1,6 +1,5 @@
 #include <Arduino.h>
 #line 1 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
-#include <string.h>
 #include "SHT31.h"
 #include "Wire.h"
 #include <GxEPD.h>
@@ -25,9 +24,8 @@ RTC_DATA_ATTR int partialTimes = 0;
 #include <ArduinoJson.h>
 #include <HTTPClient.h>
 #include <WiFi.h>
-
-const char *ssid = "PandoraBox";
-const char *password = "dengyi1991";
+#include <esp_wifi.h>
+#include "driver/adc.h"
 
 // 蓝牙ble
 #include <BLEDevice.h>
@@ -41,7 +39,6 @@ const char *password = "dengyi1991";
 #define WRITE_REBOOT_SYSTEM_CHARACTERISTIC_UUID \
   "2bbd7b92-5bc8-441c-a69a-5764d4f3d1a9"
 String downConfigJson;
-String readConfigJson;
 #include "FS.h"
 #include "SPIFFS.h"
 
@@ -49,44 +46,47 @@ String readConfigJson;
 boolean systemConfigured = false;
 JsonObject configJsonObject;
 std::string version = "1.0.0";
-std::string signal = "100";
-std::string power = "100";
 
 DynamicJsonDocument doc(1024);
 /**
  * 软件重启方法
  */
-#line 57 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
+#line 52 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
 void rebootSystem();
-#line 64 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
+#line 60 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
 void clearProperties();
-#line 72 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
+#line 68 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
 void clearSystemAndReboot();
-#line 83 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
+#line 79 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
 void readProperties();
-#line 94 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
+#line 90 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
 String readProperties2();
-#line 111 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
+#line 107 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
 boolean writeProperties(String jsonstring);
-#line 196 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
+#line 192 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
 void initBLE();
-#line 244 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
+#line 240 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
 void drawTianqiFrame();
-#line 401 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
+#line 395 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
 void drawFanscountFrame();
-#line 432 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
+#line 464 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
 void drawPicFrame();
-#line 440 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
+#line 472 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
 void drawMainFrame();
-#line 447 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
+#line 479 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
 void drawNotConfig();
-#line 453 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
+#line 486 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
+void disableWiFi();
+#line 493 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
+void enableWiFi();
+#line 499 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
 void setup();
-#line 494 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
+#line 545 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
 void loop();
-#line 57 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
+#line 52 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
 void rebootSystem()
 {
+  delay(500);
   ESP.restart();
 }
 /**
@@ -166,7 +166,7 @@ class MyCallbacks : public BLECharacteristicCallbacks
         {
 
           //保存配置文件
-          // writeProperties(downConfigJson);
+          writeProperties(downConfigJson);
           //清空下发数据
           downConfigJson = "";
           rebootSystem();
@@ -230,7 +230,6 @@ void initBLE()
   BLEDevice::init(BTNAME);
   // 2. 创建蓝牙服务
   BLEServer *pServer = BLEDevice::createServer();
-
   // 3. 创建蓝牙主服务
   BLEService *pService = pServer->createService(SERVICE_UUID);
   // 4. 创建读取特征
@@ -245,7 +244,7 @@ void initBLE()
                                      BLECharacteristic::PROPERTY_WRITE);
 
   //获取基本信息并返回
-  DynamicJsonDocument jsonDocument(1024);
+  DynamicJsonDocument jsonDocument(100);
   jsonDocument["version"] = "1.0.0";
   jsonDocument["signal"] = 100;
   jsonDocument["power"] = 100;
@@ -265,6 +264,7 @@ void initBLE()
   pAdvertising->setScanResponse(true);
   pAdvertising->setMinPreferred(0x06);
   pAdvertising->setMinPreferred(0x12);
+  pAdvertising->start();
   BLEDevice::startAdvertising();
 }
 
@@ -279,24 +279,22 @@ void drawTianqiFrame()
   DynamicJsonDocument djd(1024);
   deserializeJson(djd, configJsonString);
   JsonObject configJsonObject = djd.as<JsonObject>();
-  String slogan = jsonObject["slogan"];
-  String ssid = jsonObject["ssid"];
-  String password = jsonObject["password"];
-  String appId = jsonObject["appId"];
-  String secret = jsonObject["secret"];
+  String slogan = configJsonObject["slogan"];
+  String ssid = configJsonObject["ssid"];
+  String password = configJsonObject["password"];
+  String appId = configJsonObject["appId"];
+  String secret = configJsonObject["secret"];
 
   WiFi.begin(ssid.c_str(), password.c_str());
   while (WiFi.status() != WL_CONNECTED)
   {
-    delay(500);
+    delay(200);
   }
   HTTPClient http;
-  // String serverPath =
-  //     "http://tianqiapi.com/"
-  //     "api?unescape=1&version=v6&appid=19631362&appsecret=GyUkqDo3";
   String serverPath =
       "http://tianqiapi.com/"
-      "api?unescape=1&version=v6&appid="+appId+"&appsecret="+secret;
+      "api?unescape=1&version=v6&appid=" +
+      appId + "&appsecret=" + secret;
   http.begin(serverPath.c_str());
   int httpResponseCode = http.GET();
   String payload = http.getString();
@@ -431,6 +429,23 @@ void drawTianqiFrame()
  */
 void drawFanscountFrame()
 {
+  //读取配置
+  String configJsonString = readProperties2();
+  DynamicJsonDocument djd(1024);
+  deserializeJson(djd, configJsonString);
+  JsonObject configJsonObject = djd.as<JsonObject>();
+  String ssid = configJsonObject["ssid"];
+  String password = configJsonObject["password"];
+  String vmId = configJsonObject["vmId"];
+  String appId = configJsonObject["appId"];
+  String appToken = configJsonObject["appToken"];
+  //连接WiFi
+  WiFi.begin(ssid.c_str(), password.c_str());
+  while (WiFi.status() != WL_CONNECTED)
+  {
+    delay(200);
+  }
+
   display.setRotation(1);
   display.fillScreen(GxEPD_WHITE);
 
@@ -448,7 +463,17 @@ void drawFanscountFrame()
   display.setCursor(180, 66);
   display.setFont(&FreeMonoBold18pt7b);
   display.setTextColor(GxEPD_BLACK);
-  display.print(5362);
+  //请求粉丝数
+  HTTPClient http1;
+  String biliServerPath = "https://api.bilibili.com/x/relation/stat?vmid=" + vmId + "&jsonp=jsonp";
+  http1.begin(biliServerPath.c_str());
+  http1.GET();
+  String payload1 = http1.getString();
+  DynamicJsonDocument djd1(500);
+  deserializeJson(djd1, payload1);
+  JsonObject jsonObject1 = djd1.as<JsonObject>();
+  int biliCount = jsonObject1["data"]["follower"];
+  display.print(biliCount);
 
   display.drawLine(128, 84, 296, 84, GxEPD_BLACK);
   display.drawBitmap(icon_baijia_4040, 133, 88, 40, 40, GxEPD_WHITE);
@@ -456,7 +481,18 @@ void drawFanscountFrame()
   display.setCursor(180, 120);
   display.setFont(&FreeMonoBold18pt7b);
   display.setTextColor(GxEPD_BLACK);
-  display.print(9527);
+  //百家号粉丝数
+  HTTPClient http2;
+  String baijiaServerPath = "https://baijiahao.baidu.com/builderinner/open/resource/query/fansListall?app_token=" + appToken + "&app_id=" + appId + "&page_no=1&page_size=1";
+  http2.begin(baijiaServerPath.c_str());
+  http2.GET();
+  String payload2 = http2.getString();
+  DynamicJsonDocument djd2(500);
+  deserializeJson(djd2, payload2);
+  JsonObject jsonObject2 = djd2.as<JsonObject>();
+  int baijiaCount = jsonObject2["data"]["page"]["total_count"];
+
+  display.print(baijiaCount);
   display.update();
 }
 
@@ -481,6 +517,20 @@ void drawNotConfig()
   display.drawBitmap(full_image_not_config, 0, 0, 128, 296, GxEPD_WHITE);
   display.update();
 }
+
+void disableWiFi()
+{
+  adc_power_off();
+  WiFi.disconnect(true);
+  WiFi.mode(WIFI_OFF);
+}
+
+void enableWiFi()
+{
+  adc_power_on();
+  WiFi.disconnect(false); // Reconnect the network
+  WiFi.mode(WIFI_STA);    // Switch WiFi off
+}
 void setup()
 {
   Serial.begin(115200);
@@ -494,7 +544,9 @@ void setup()
   drawMainFrame();
   //延迟1.5秒
   delay(1500);
+  //读取配置文件
   String configJsonString = readProperties2();
+  //判断是否配置，未配置则显示未配置
   if (configJsonString != "")
   {
     //解析配置
@@ -519,6 +571,9 @@ void setup()
   {
     //显示未配置
     drawNotConfig();
+    disableWiFi();
+    // esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
+    // esp_deep_sleep_start();
   }
 }
 

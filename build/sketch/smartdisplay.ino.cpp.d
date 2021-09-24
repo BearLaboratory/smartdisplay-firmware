@@ -247,6 +247,12 @@ c:\Users\BLab\Desktop\smartdisplay\build\sketch\smartdisplay.ino.cpp.o: \
  C:\Users\BLab\AppData\Local\Arduino15\packages\esp32\hardware\esp32\1.0.6/tools/sdk/include/esp32/hwcrypto/aes.h \
  C:\Users\BLab\AppData\Local\Arduino15\packages\esp32\hardware\esp32\1.0.6/tools/sdk/include/esp32/rom/aes.h \
  C:\Users\BLab\AppData\Local\Arduino15\packages\esp32\hardware\esp32\1.0.6/tools/sdk/include/mbedtls/mbedtls/error.h \
+ C:\Users\BLab\AppData\Local\Arduino15\packages\esp32\hardware\esp32\1.0.6/tools/sdk/include/esp32/esp_wifi.h \
+ C:\Users\BLab\AppData\Local\Arduino15\packages\esp32\hardware\esp32\1.0.6/tools/sdk/include/esp32/esp_private/esp_wifi_private.h \
+ C:\Users\BLab\AppData\Local\Arduino15\packages\esp32\hardware\esp32\1.0.6/tools/sdk/include/esp32/esp_wifi_crypto_types.h \
+ C:\Users\BLab\AppData\Local\Arduino15\packages\esp32\hardware\esp32\1.0.6/tools/sdk/include/esp32/esp_wifi_os_adapter.h \
+ C:\Users\BLab\AppData\Local\Arduino15\packages\esp32\hardware\esp32\1.0.6/tools/sdk/include/driver/driver/adc.h \
+ C:\Users\BLab\AppData\Local\Arduino15\packages\esp32\hardware\esp32\1.0.6/tools/sdk/include/soc/soc/adc_channel.h \
  C:\Users\BLab\AppData\Local\Arduino15\packages\esp32\hardware\esp32\1.0.6\libraries\BLE\src/BLEDevice.h \
  C:\Users\BLab\AppData\Local\Arduino15\packages\esp32\hardware\esp32\1.0.6/tools/sdk/include/bt/esp_gap_ble_api.h \
  C:\Users\BLab\AppData\Local\Arduino15\packages\esp32\hardware\esp32\1.0.6/tools/sdk/include/bt/esp_bt_defs.h \
