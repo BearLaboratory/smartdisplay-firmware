@@ -37,7 +37,7 @@ __attribute__((section(".rtc.data" "." "17"))) int partialTimes = 0;
 #define WRITE_CONFIG_CHARACTERISTIC_UUID "2bbd7b92-5bc8-441c-a69a-5764d4f3d1a8"
 #define WRITE_REBOOT_SYSTEM_CHARACTERISTIC_UUID "2bbd7b92-5bc8-441c-a69a-5764d4f3d1a9"
 
-String downConfigJson;
+String downConfigJson = "";
 # 41 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino" 2
 # 42 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino" 2
 
@@ -47,12 +47,14 @@ JsonObject configJsonObject;
 std::string version = "1.0.0";
 
 DynamicJsonDocument doc(1024);
+
+boolean bleConnect = false;
 /**
 
  * 软件重启方法
 
  */
-# 52 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
+# 54 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
 void rebootSystem()
 {
   delay(500);
@@ -63,7 +65,7 @@ void rebootSystem()
  * 清空删除配置文件
 
  */
-# 60 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
+# 62 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
 void clearProperties()
 {
   SPIFFS.remove("/config.json");
@@ -75,7 +77,7 @@ void clearProperties()
  * 注意：这个方法必须要在文件系统挂载以后才能调用
 
  */
-# 68 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
+# 70 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
 void clearSystemAndReboot()
 {
   clearProperties();
@@ -92,7 +94,7 @@ void clearSystemAndReboot()
  *
 
  */
-# 79 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
+# 81 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
 void readProperties()
 {
   //检查文件是否存在
@@ -111,8 +113,15 @@ String readProperties2()
   boolean exist = SPIFFS.exists("/config.json");
   if (exist)
   {
-    File file = SPIFFS.open("/config.json", "r");
-    data = file.readString();
+    Serial.println("file exist");
+    File file = SPIFFS.open("/config.json");
+    String data2 = file.readString();
+    return data2;
+    file.close();
+  }
+  else
+  {
+    Serial.println("file not  exist");
   }
   return data;
 }
@@ -125,17 +134,37 @@ String readProperties2()
  * @param jsonstring
 
  */
-# 107 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
+# 116 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
 boolean writeProperties(String jsonstring)
 {
   File file = SPIFFS.open("/config.json", "w");
-  boolean status = false;
-  if (file && file.print(jsonstring))
+  if (!file)
   {
-    status = true;
+    Serial.println("openfile fail");
+    return false;
   }
-  file.close();
-  return status;
+  if (file.print(jsonstring))
+  {
+    file.close();
+    Serial.println("save file success");
+    return true;
+  }
+  else
+  {
+    Serial.println("save file fail");
+    return false;
+  }
+
+  // Serial.print("config ");
+  // Serial.print(jsonstring);
+  // File file = SPIFFS.open("/config.json", FILE_WRITE);
+  // boolean status = false;
+  // if (file && file.print(jsonstring))
+  // {
+  //   status = true;
+  // }
+  // file.close();
+  // return status;
 }
 
 // 3. 定义写数据回调函数
@@ -146,17 +175,20 @@ class MyCallbacks : public BLECharacteristicCallbacks
     std::string value = pCharacteristic->getValue();
     if (value.length() > 0)
     {
-      for (int i = 0; i < value.length(); ++i)
+      for (int i = 0; i < value.length(); i++)
       {
         downConfigJson += value[i];
+        Serial.print(downConfigJson);
         if (value[i] == 125)
         {
 
           //保存配置文件
-          writeProperties(downConfigJson);
-          //清空下发数据
-          downConfigJson = "";
-          rebootSystem();
+          if (writeProperties(downConfigJson))
+          {
+            //清空下发数据
+            downConfigJson = "";
+            rebootSystem();
+          }
         }
       }
     }
@@ -168,7 +200,7 @@ class MyCallbacks : public BLECharacteristicCallbacks
  * 蓝牙重启系统回调方法
 
  */
-# 147 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
+# 179 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
 class RebootSystemCallback : public BLECharacteristicCallbacks
 {
   void onWrite(BLECharacteristic *pCharacteristic)
@@ -198,6 +230,7 @@ class MyServerCallbacks : public BLEServerCallbacks
   //蓝牙连接上回调
   void onConnect(BLEServer *pServer)
   {
+    bleConnect = true;
     display.setRotation(0);
     display.drawBitmap(full_image_in_config, 0, 0, 128, 296, 0xFFFF);
     display.update();
@@ -206,6 +239,7 @@ class MyServerCallbacks : public BLEServerCallbacks
   //连接断开回调
   void onDisconnect(BLEServer *pServer)
   {
+    bleConnect = false;
     //重启系统
     rebootSystem();
   }
@@ -217,7 +251,7 @@ class MyServerCallbacks : public BLEServerCallbacks
  *
 
  */
-# 192 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
+# 226 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
 void initBLE()
 {
   // 1. 蓝牙广播名字
@@ -242,6 +276,13 @@ void initBLE()
   jsonDocument["version"] = "1.0.0";
   jsonDocument["signal"] = 100;
   jsonDocument["power"] = 100;
+  String configJsonString = readProperties2();
+  DynamicJsonDocument djd(1024);
+  deserializeJson(djd, configJsonString);
+  JsonObject configJsonObject = djd.as<JsonObject>();
+  int type = configJsonObject["type"];
+  jsonDocument["type"] = type;
+
   String rawDataString;
   serializeJson(jsonDocument, rawDataString);
   std::string dataString = std::string(rawDataString.c_str());
@@ -269,7 +310,7 @@ void initBLE()
  * 
 
  */
-# 240 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
+# 281 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
 void drawTianqiFrame()
 {
   //读取配置
@@ -428,7 +469,7 @@ void drawTianqiFrame()
  * 
 
  */
-# 395 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
+# 436 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
 void drawFanscountFrame()
 {
   //读取配置
@@ -440,7 +481,7 @@ void drawFanscountFrame()
   String password = configJsonObject["password"];
   String vmId = configJsonObject["vmId"];
   String appId = configJsonObject["appId"];
-  String appToken = configJsonObject["appToken"];
+  String appToken = configJsonObject["token"];
   //连接WiFi
   WiFi.begin(ssid.c_str(), password.c_str());
   while (WiFi.status() != WL_CONNECTED)
@@ -467,7 +508,7 @@ void drawFanscountFrame()
   display.setTextColor(0x0000);
   //请求粉丝数
   HTTPClient http1;
-  String biliServerPath = "https://api.bilibili.com/x/relation/stat?vmid=" + vmId + "&jsonp=jsonp";
+  String biliServerPath = "http://api.bilibili.com/x/relation/stat?vmid=" + vmId + "&jsonp=jsonp";
   http1.begin(biliServerPath.c_str());
   http1.GET();
   String payload1 = http1.getString();
@@ -485,7 +526,7 @@ void drawFanscountFrame()
   display.setTextColor(0x0000);
   //百家号粉丝数
   HTTPClient http2;
-  String baijiaServerPath = "https://baijiahao.baidu.com/builderinner/open/resource/query/fansListall?app_token=" + appToken + "&app_id=" + appId + "&page_no=1&page_size=1";
+  String baijiaServerPath = "http://baijiahao.baidu.com/builderinner/open/resource/query/fansListall?app_token=" + appToken + "&app_id=" + appId + "&page_no=1&page_size=1";
   http2.begin(baijiaServerPath.c_str());
   http2.GET();
   String payload2 = http2.getString();
@@ -496,6 +537,9 @@ void drawFanscountFrame()
 
   display.print(baijiaCount);
   display.update();
+
+  esp_sleep_enable_timer_wakeup(60 * 1000000ULL);
+  esp_deep_sleep_start();
 }
 
 void drawPicFrame()
@@ -536,46 +580,58 @@ void enableWiFi()
 void setup()
 {
   Serial.begin(115200);
-  //初始化蓝牙
-  initBLE();
-  //初始化标记
-  inited = true;
-  //初始化屏幕
-  display.init();
-  //画主图
-  drawMainFrame();
-  //延迟1.5秒
-  delay(1500);
-  //读取配置文件
-  String configJsonString = readProperties2();
-  //判断是否配置，未配置则显示未配置
-  if (configJsonString != "")
+  //挂载文件系统
+  if (SPIFFS.begin(true))
   {
-    //解析配置
-    DynamicJsonDocument djd(1024);
-    deserializeJson(djd, configJsonString);
-    JsonObject jsonObject = djd.as<JsonObject>();
-    int type = jsonObject["type"];
-    if (type == 1)
+    //初始化蓝牙
+    initBLE();
+    //初始化标记
+    inited = true;
+    //初始化屏幕
+    display.init();
+    //画主图
+    drawMainFrame();
+    //延迟1.5秒
+    delay(1500);
+    //读取配置文件
+    String configJsonString = readProperties2();
+    Serial.println(configJsonString);
+    //判断是否配置，未配置则显示未配置
+    if (configJsonString != "")
     {
-      drawPicFrame();
+      //解析配置
+      DynamicJsonDocument djd(1024);
+      deserializeJson(djd, configJsonString);
+      JsonObject jsonObject = djd.as<JsonObject>();
+      int type = jsonObject["type"];
+      if (type == 0)
+      {
+        drawPicFrame();
+      }
+      else if (type == 1)
+      {
+        drawTianqiFrame();
+      }
+      else if (type == 2)
+      {
+        drawFanscountFrame();
+      }
     }
-    else if (type == 2)
+    else
     {
-      drawTianqiFrame();
-    }
-    else if (type == 2)
-    {
-      drawFanscountFrame();
+      //显示未配置
+      drawNotConfig();
+      //disableWiFi();
+      if (!bleConnect)
+      {
+        // esp_sleep_enable_timer_wakeup(600 * uS_TO_S_FACTOR);
+        // esp_deep_sleep_start();
+      }
     }
   }
   else
   {
-    //显示未配置
-    drawNotConfig();
-    disableWiFi();
-    // esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
-    // esp_deep_sleep_start();
+    Serial.println("file system mount fail");
   }
 }
 
