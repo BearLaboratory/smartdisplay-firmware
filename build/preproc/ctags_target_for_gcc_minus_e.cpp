@@ -537,9 +537,11 @@ void drawFanscountFrame()
 
   display.print(baijiaCount);
   display.update();
-
-  esp_sleep_enable_timer_wakeup(60 * 1000000ULL);
-  esp_deep_sleep_start();
+  if (!bleConnect)
+  {
+    esp_sleep_enable_timer_wakeup(60 * 1000000ULL);
+    esp_deep_sleep_start();
+  }
 }
 
 void drawPicFrame()

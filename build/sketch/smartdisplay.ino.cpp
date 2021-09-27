@@ -71,19 +71,19 @@ void initBLE();
 void drawTianqiFrame();
 #line 436 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
 void drawFanscountFrame();
-#line 508 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
+#line 510 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
 void drawPicFrame();
-#line 516 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
+#line 518 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
 void drawMainFrame();
-#line 523 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
+#line 525 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
 void drawNotConfig();
-#line 530 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
+#line 532 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
 void disableWiFi();
-#line 537 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
+#line 539 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
 void enableWiFi();
-#line 543 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
+#line 545 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
 void setup();
-#line 601 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
+#line 603 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
 void loop();
 #line 54 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
 void rebootSystem()
@@ -535,9 +535,11 @@ void drawFanscountFrame()
 
   display.print(baijiaCount);
   display.update();
-
-  esp_sleep_enable_timer_wakeup(60 * uS_TO_S_FACTOR);
-  esp_deep_sleep_start();
+  if (!bleConnect)
+  {
+    esp_sleep_enable_timer_wakeup(60 * uS_TO_S_FACTOR);
+    esp_deep_sleep_start();
+  }
 }
 
 void drawPicFrame()

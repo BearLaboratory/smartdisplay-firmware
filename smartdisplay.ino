@@ -19,6 +19,11 @@ SHT31 sht;
 RTC_DATA_ATTR bool inited = false;
 RTC_DATA_ATTR int partialTimes = 0;
 
+RTC_DATA_ATTR String tem = "";
+RTC_DATA_ATTR String humidity = "";
+RTC_DATA_ATTR String wea = "";
+RTC_DATA_ATTR String slogan = "";
+
 #include <ArduinoJson.h>
 #include <HTTPClient.h>
 #include <WiFi.h>
@@ -39,6 +44,7 @@ RTC_DATA_ATTR int partialTimes = 0;
 String downConfigJson = "";
 #include "FS.h"
 #include "SPIFFS.h"
+#include "time.h"
 
 //系统是否配置标识
 boolean systemConfigured = false;
@@ -280,43 +286,55 @@ void initBLE()
  */
 void drawTianqiFrame()
 {
-  //读取配置
-  String configJsonString = readProperties2();
-  DynamicJsonDocument djd(1024);
-  deserializeJson(djd, configJsonString);
-  JsonObject configJsonObject = djd.as<JsonObject>();
-  String slogan = configJsonObject["slogan"];
-  String ssid = configJsonObject["ssid"];
-  String password = configJsonObject["password"];
-  String appId = configJsonObject["appId"];
-  String secret = configJsonObject["secret"];
 
-  WiFi.begin(ssid.c_str(), password.c_str());
-  while (WiFi.status() != WL_CONNECTED)
+  //需要请求网络，高耗能
+  if (partialTimes == 0)
   {
-    delay(200);
+    adc_power_on();
+    WiFi.disconnect(false);
+    WiFi.mode(WIFI_STA);
+    //读取配置
+    String configJsonString = readProperties2();
+    DynamicJsonDocument djd(1024);
+    deserializeJson(djd, configJsonString);
+    JsonObject configJsonObject = djd.as<JsonObject>();
+    slogan = configJsonObject["slogan"];
+    String ssid = configJsonObject["ssid"];
+    String password = configJsonObject["password"];
+    String appId = configJsonObject["appId"];
+    String secret = configJsonObject["secret"];
+
+    WiFi.begin(ssid.c_str(), password.c_str());
+    while (WiFi.status() != WL_CONNECTED)
+    {
+      delay(200);
+    }
+    HTTPClient http;
+    String serverPath =
+        "http://tianqiapi.com/"
+        "api?unescape=1&version=v6&appid=" +
+        appId + "&appsecret=" + secret;
+    http.begin(serverPath.c_str());
+    int httpResponseCode = http.GET();
+    String payload = http.getString();
+    DynamicJsonDocument doc1(1024);
+    deserializeJson(doc1, payload);
+    JsonObject jsonObject = doc1.as<JsonObject>();
+    http.end();
+    //中国在东八区时间要加8小时
+    configTime(8 * 60 * 60, 0, "pool.ntp.org");
+
+    tem = jsonObject["tem"];
+    humidity = jsonObject["humidity"];
+    wea = jsonObject["wea"];
   }
-  HTTPClient http;
-  String serverPath =
-      "http://tianqiapi.com/"
-      "api?unescape=1&version=v6&appid=" +
-      appId + "&appsecret=" + secret;
-  http.begin(serverPath.c_str());
-  int httpResponseCode = http.GET();
-  String payload = http.getString();
-  DynamicJsonDocument doc1(1024);
-  deserializeJson(doc1, payload);
-  JsonObject jsonObject = doc1.as<JsonObject>();
-  http.end();
-  HTTPClient http2;
-  String serverPath1 = "http://quan.suning.com/getSysTime.do";
-  http2.begin(serverPath1.c_str());
-  int httpResponseCode2 = http2.GET();
-  String payload2 = http2.getString();
-  DynamicJsonDocument doc2(1024);
-  deserializeJson(doc2, payload2);
-  JsonObject timeJsonObject = doc2.as<JsonObject>();
-  http2.end();
+  else
+  {
+    //关闭WiFi功能省电
+    adc_power_off();
+    WiFi.disconnect(true);
+    WiFi.mode(WIFI_OFF);
+  }
 
   display.setRotation(1);
   display.fillScreen(GxEPD_WHITE);
@@ -332,7 +350,7 @@ void drawTianqiFrame()
   display.setBackgroundColor(GxEPD_WHITE);
   display.setForegroundColor(GxEPD_BLACK);
   display.print("室外");
-  String tem = jsonObject["tem"];
+  //获取RTC中的缓存数据
   display.print(tem);
   display.print("°C");
 
@@ -348,7 +366,6 @@ void drawTianqiFrame()
   display.setBackgroundColor(GxEPD_WHITE);
   display.setForegroundColor(GxEPD_BLACK);
   display.print("室外");
-  String humidity = jsonObject["humidity"];
   display.print(humidity);
 
   // 温度
@@ -370,10 +387,13 @@ void drawTianqiFrame()
   display.setCursor(52, 89);
   display.setFont(&Dialog_plain_65);
   display.setTextColor(GxEPD_BLACK);
-  String timestring = timeJsonObject["sysTime1"];
-  display.print(timestring.substring(8, 10));
+  struct tm timeinfo;
+  getLocalTime(&timeinfo);
+  int hour = timeinfo.tm_hour;
+  int minu = timeinfo.tm_min;
+  display.print(hour);
   display.print(":");
-  display.print(timestring.substring(10, 12));
+  display.print(minu);
 
   // 湿度
   display.setCursor(240, 75);
@@ -400,7 +420,6 @@ void drawTianqiFrame()
   display.setFont(u8g2_font_wqy16_t_gb2312);
   display.setBackgroundColor(GxEPD_BLACK);
   display.setForegroundColor(GxEPD_WHITE);
-  String wea = jsonObject["wea"];
   display.print(wea);
 
   display.drawLine(211, 105, 291, 105, GxEPD_BLACK);
@@ -409,23 +428,23 @@ void drawTianqiFrame()
   display.setFont(&FreeMonoBold9pt7b);
   display.print("100%");
 
-  if (inited)
+  //五分钟一次全局刷新
+  if (partialTimes == 0)
   {
-    partialTimes++;
-
-    if (partialTimes == 5)
-    {
-      partialTimes = 0;
-      display.update();
-    }
-    else
-    {
-      display.updateWindow(0, 0, GxEPD_WIDTH, GxEPD_HEIGHT, false);
-    }
+    display.update();
   }
   else
   {
-    display.update();
+    display.updateWindow(0, 0, GxEPD_WIDTH, GxEPD_HEIGHT, false);
+  }
+  //第5分钟置为0
+  if (partialTimes == 4)
+  {
+    partialTimes = 0;
+  }
+  else
+  {
+    partialTimes++;
   }
 }
 
@@ -500,9 +519,11 @@ void drawFanscountFrame()
 
   display.print(baijiaCount);
   display.update();
-
-  esp_sleep_enable_timer_wakeup(60 * uS_TO_S_FACTOR);
-  esp_deep_sleep_start();
+  if (!bleConnect)
+  {
+    esp_sleep_enable_timer_wakeup(60 * uS_TO_S_FACTOR);
+    esp_deep_sleep_start();
+  }
 }
 
 void drawPicFrame()
