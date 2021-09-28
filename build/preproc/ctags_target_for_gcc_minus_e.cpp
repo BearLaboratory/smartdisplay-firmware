@@ -20,16 +20,21 @@ SHT31 sht;
 __attribute__((section(".rtc.data" "." "16"))) bool inited = false;
 __attribute__((section(".rtc.data" "." "17"))) int partialTimes = 0;
 
-# 23 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino" 2
-# 24 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino" 2
-# 25 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino" 2
-# 26 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino" 2
-# 27 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino" 2
+__attribute__((section(".rtc.data" "." "18"))) char tempArray[4];
+__attribute__((section(".rtc.data" "." "19"))) char humidityArray[4];
+__attribute__((section(".rtc.data" "." "20"))) char weaArray[8];
+__attribute__((section(".rtc.data" "." "21"))) char sloganArray[50];
 
-// 蓝牙ble
+# 28 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino" 2
+# 29 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino" 2
 # 30 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino" 2
 # 31 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino" 2
 # 32 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino" 2
+
+// 蓝牙ble
+# 35 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino" 2
+# 36 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino" 2
+# 37 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino" 2
 
 #define BTNAME "BLabSmartDisplay"
 #define SERVICE_UUID "71db3107-6be5-4c0b-ad8e-731df7069e62"
@@ -38,8 +43,9 @@ __attribute__((section(".rtc.data" "." "17"))) int partialTimes = 0;
 #define WRITE_REBOOT_SYSTEM_CHARACTERISTIC_UUID "2bbd7b92-5bc8-441c-a69a-5764d4f3d1a9"
 
 String downConfigJson = "";
-# 41 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino" 2
-# 42 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino" 2
+# 46 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino" 2
+# 47 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino" 2
+# 48 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino" 2
 
 //系统是否配置标识
 boolean systemConfigured = false;
@@ -54,7 +60,7 @@ boolean bleConnect = false;
  * 软件重启方法
 
  */
-# 54 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
+# 60 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
 void rebootSystem()
 {
   delay(500);
@@ -65,7 +71,7 @@ void rebootSystem()
  * 清空删除配置文件
 
  */
-# 62 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
+# 68 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
 void clearProperties()
 {
   SPIFFS.remove("/config.json");
@@ -77,7 +83,7 @@ void clearProperties()
  * 注意：这个方法必须要在文件系统挂载以后才能调用
 
  */
-# 70 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
+# 76 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
 void clearSystemAndReboot()
 {
   clearProperties();
@@ -94,7 +100,7 @@ void clearSystemAndReboot()
  *
 
  */
-# 81 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
+# 87 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
 void readProperties()
 {
   //检查文件是否存在
@@ -134,7 +140,7 @@ String readProperties2()
  * @param jsonstring
 
  */
-# 116 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
+# 122 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
 boolean writeProperties(String jsonstring)
 {
   File file = SPIFFS.open("/config.json", "w");
@@ -173,12 +179,12 @@ class MyCallbacks : public BLECharacteristicCallbacks
   void onWrite(BLECharacteristic *pCharacteristic)
   {
     std::string value = pCharacteristic->getValue();
+    Serial.print(value.c_str());
     if (value.length() > 0)
     {
       for (int i = 0; i < value.length(); i++)
       {
         downConfigJson += value[i];
-        Serial.print(downConfigJson);
         if (value[i] == 125)
         {
 
@@ -200,7 +206,7 @@ class MyCallbacks : public BLECharacteristicCallbacks
  * 蓝牙重启系统回调方法
 
  */
-# 179 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
+# 185 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
 class RebootSystemCallback : public BLECharacteristicCallbacks
 {
   void onWrite(BLECharacteristic *pCharacteristic)
@@ -251,7 +257,7 @@ class MyServerCallbacks : public BLEServerCallbacks
  *
 
  */
-# 226 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
+# 232 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
 void initBLE()
 {
   // 1. 蓝牙广播名字
@@ -310,46 +316,62 @@ void initBLE()
  * 
 
  */
-# 281 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
+# 287 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
 void drawTianqiFrame()
 {
-  //读取配置
-  String configJsonString = readProperties2();
-  DynamicJsonDocument djd(1024);
-  deserializeJson(djd, configJsonString);
-  JsonObject configJsonObject = djd.as<JsonObject>();
-  String slogan = configJsonObject["slogan"];
-  String ssid = configJsonObject["ssid"];
-  String password = configJsonObject["password"];
-  String appId = configJsonObject["appId"];
-  String secret = configJsonObject["secret"];
 
-  WiFi.begin(ssid.c_str(), password.c_str());
-  while (WiFi.status() != WL_CONNECTED)
+  //需要请求网络，高耗能
+  if (partialTimes == 0)
   {
-    delay(200);
+    adc_power_on();
+    WiFi.disconnect(false);
+    WiFi.mode(WIFI_MODE_STA);
+    //读取配置
+    String configJsonString = readProperties2();
+    DynamicJsonDocument djd(1024);
+    deserializeJson(djd, configJsonString);
+    JsonObject configJsonObject = djd.as<JsonObject>();
+    String configSlogan = configJsonObject["slogan"];
+    configSlogan.toCharArray(sloganArray, 50);
+    String ssid = configJsonObject["ssid"];
+    String password = configJsonObject["password"];
+    String appId = configJsonObject["appId"];
+    String secret = configJsonObject["secret"];
+
+    WiFi.begin(ssid.c_str(), password.c_str());
+    while (WiFi.status() != WL_CONNECTED)
+    {
+      delay(200);
+    }
+    HTTPClient http;
+    String serverPath =
+        "http://tianqiapi.com/"
+        "api?unescape=1&version=v6&appid=" +
+        appId + "&appsecret=" + secret;
+    http.begin(serverPath.c_str());
+    int httpResponseCode = http.GET();
+    String payload = http.getString();
+    DynamicJsonDocument doc1(1024);
+    deserializeJson(doc1, payload);
+    JsonObject jsonObject = doc1.as<JsonObject>();
+    http.end();
+    //中国在东八区时间要加8小时
+    configTime(8 * 60 * 60, 0, "pool.ntp.org");
+
+    String rtem = jsonObject["tem"];
+    rtem.toCharArray(tempArray, 4);
+    String rhumidity = jsonObject["humidity"];
+    rhumidity.toCharArray(humidityArray, 4);
+    String rwea = jsonObject["wea"];
+    rwea.toCharArray(weaArray, 8);
   }
-  HTTPClient http;
-  String serverPath =
-      "http://tianqiapi.com/"
-      "api?unescape=1&version=v6&appid=" +
-      appId + "&appsecret=" + secret;
-  http.begin(serverPath.c_str());
-  int httpResponseCode = http.GET();
-  String payload = http.getString();
-  DynamicJsonDocument doc1(1024);
-  deserializeJson(doc1, payload);
-  JsonObject jsonObject = doc1.as<JsonObject>();
-  http.end();
-  HTTPClient http2;
-  String serverPath1 = "http://quan.suning.com/getSysTime.do";
-  http2.begin(serverPath1.c_str());
-  int httpResponseCode2 = http2.GET();
-  String payload2 = http2.getString();
-  DynamicJsonDocument doc2(1024);
-  deserializeJson(doc2, payload2);
-  JsonObject timeJsonObject = doc2.as<JsonObject>();
-  http2.end();
+  else
+  {
+    //关闭WiFi功能省电
+    adc_power_off();
+    WiFi.disconnect(true);
+    WiFi.mode(WIFI_MODE_NULL);
+  }
 
   display.setRotation(1);
   display.fillScreen(0xFFFF);
@@ -365,15 +387,15 @@ void drawTianqiFrame()
   display.setBackgroundColor(0xFFFF);
   display.setForegroundColor(0x0000);
   display.print("室外");
-  String tem = jsonObject["tem"];
-  display.print(tem);
+  //获取RTC中的缓存数据
+  display.print(String(tempArray));
   display.print("°C");
 
   display.setCursor(95, 16);
   display.setFont(u8g2_font_wqy16_t_gb2312);
   display.setBackgroundColor(0xFFFF);
   display.setForegroundColor(0x0000);
-  display.print(slogan);
+  display.print(String(sloganArray));
 
   display.drawLine(246, 16, 296, 16, 0x0000);
   display.setCursor(250, 11);
@@ -381,8 +403,7 @@ void drawTianqiFrame()
   display.setBackgroundColor(0xFFFF);
   display.setForegroundColor(0x0000);
   display.print("室外");
-  String humidity = jsonObject["humidity"];
-  display.print(humidity);
+  display.print(String(humidityArray));
 
   // 温度
   display.setCursor(0, 70);
@@ -403,10 +424,13 @@ void drawTianqiFrame()
   display.setCursor(52, 89);
   display.setFont(&Dialog_plain_65);
   display.setTextColor(0x0000);
-  String timestring = timeJsonObject["sysTime1"];
-  display.print(timestring.substring(8, 10));
+  struct tm timeinfo;
+  getLocalTime(&timeinfo);
+  int hour = timeinfo.tm_hour;
+  int minu = timeinfo.tm_min;
+  display.print(hour);
   display.print(":");
-  display.print(timestring.substring(10, 12));
+  display.print(minu);
 
   // 湿度
   display.setCursor(240, 75);
@@ -429,12 +453,21 @@ void drawTianqiFrame()
   display.print("100%");
 
   display.fillRoundRect(98, 105, 100, 22, 10, 0x0000);
-  display.setCursor(130, 122);
+
   display.setFont(u8g2_font_wqy16_t_gb2312);
   display.setBackgroundColor(0x0000);
   display.setForegroundColor(0xFFFF);
-  String wea = jsonObject["wea"];
-  display.print(wea);
+  String realWeather = String(weaArray);
+  Serial.print(realWeather.length());
+  if (realWeather.length() == 3)
+  {
+    display.setCursor(140, 122);
+  }
+  else
+  {
+    display.setCursor(132, 122);
+  }
+  display.print(realWeather);
 
   display.drawLine(211, 105, 291, 105, 0x0000);
   display.drawBitmap(icon_battery_wifi_100_1616, 230, 110, 16, 16, 0xFFFF);
@@ -442,23 +475,29 @@ void drawTianqiFrame()
   display.setFont(&FreeMonoBold9pt7b);
   display.print("100%");
 
-  if (inited)
+  //五分钟一次全局刷新
+  if (partialTimes == 0)
   {
-    partialTimes++;
-
-    if (partialTimes == 5)
-    {
-      partialTimes = 0;
-      display.update();
-    }
-    else
-    {
-      display.updateWindow(0, 0, 128, 296, false);
-    }
+    display.update();
   }
   else
   {
-    display.update();
+    display.updateWindow(0, 0, 128, 296, false);
+  }
+  //第5分钟置为0
+  if (partialTimes == 4)
+  {
+    partialTimes = 0;
+  }
+  else
+  {
+    partialTimes++;
+  }
+
+  if (!bleConnect)
+  {
+    esp_sleep_enable_timer_wakeup(60 * 1000000ULL);
+    esp_deep_sleep_start();
   }
 }
 
@@ -469,77 +508,93 @@ void drawTianqiFrame()
  * 
 
  */
-# 436 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
+# 475 "c:\\Users\\BLab\\Desktop\\smartdisplay\\smartdisplay.ino"
 void drawFanscountFrame()
 {
-  //读取配置
-  String configJsonString = readProperties2();
-  DynamicJsonDocument djd(1024);
-  deserializeJson(djd, configJsonString);
-  JsonObject configJsonObject = djd.as<JsonObject>();
-  String ssid = configJsonObject["ssid"];
-  String password = configJsonObject["password"];
-  String vmId = configJsonObject["vmId"];
-  String appId = configJsonObject["appId"];
-  String appToken = configJsonObject["token"];
-  //连接WiFi
-  WiFi.begin(ssid.c_str(), password.c_str());
-  while (WiFi.status() != WL_CONNECTED)
+
+  if (partialTimes == 0)
   {
-    delay(200);
+    //读取配置
+    String configJsonString = readProperties2();
+    DynamicJsonDocument djd(1024);
+    deserializeJson(djd, configJsonString);
+    JsonObject configJsonObject = djd.as<JsonObject>();
+    String brand = configJsonObject["brand"];
+    String ssid = configJsonObject["ssid"];
+    String password = configJsonObject["password"];
+    String vmId = configJsonObject["vmId"];
+    String appId = configJsonObject["appId"];
+    String appToken = configJsonObject["token"];
+    //连接WiFi
+    WiFi.begin(ssid.c_str(), password.c_str());
+    while (WiFi.status() != WL_CONNECTED)
+    {
+      delay(200);
+    }
+
+    display.setRotation(1);
+    display.fillScreen(0xFFFF);
+
+    display.drawBitmap(icon_flower_128128, 0, 0, 128, 128, 0xFFFF);
+
+    display.fillRect(128, 0, 168, 40, 0x0000);
+    display.setCursor(133, 26);
+    display.setFont(u8g2_font_wqy16_t_gb2312);
+    display.setBackgroundColor(0x0000);
+    display.setForegroundColor(0xFFFF);
+    display.print(brand);
+
+    display.drawBitmap(icon_bilibili_4040, 133, 40, 40, 40, 0xFFFF);
+
+    display.setCursor(180, 66);
+    display.setFont(&FreeMonoBold18pt7b);
+    display.setTextColor(0x0000);
+    //请求粉丝数
+    HTTPClient http1;
+    String biliServerPath = "http://api.bilibili.com/x/relation/stat?vmid=" + vmId + "&jsonp=jsonp";
+    http1.begin(biliServerPath.c_str());
+    http1.GET();
+    String payload1 = http1.getString();
+    DynamicJsonDocument djd1(500);
+    deserializeJson(djd1, payload1);
+    JsonObject jsonObject1 = djd1.as<JsonObject>();
+    int biliCount = jsonObject1["data"]["follower"];
+    display.print(biliCount);
+
+    display.drawLine(128, 84, 296, 84, 0x0000);
+    display.drawBitmap(icon_baijia_4040, 133, 88, 40, 40, 0xFFFF);
+
+    display.setCursor(180, 120);
+    display.setFont(&FreeMonoBold18pt7b);
+    display.setTextColor(0x0000);
+    //百家号粉丝数
+    HTTPClient http2;
+    String baijiaServerPath = "http://baijiahao.baidu.com/builderinner/open/resource/query/fansListall?app_token=" + appToken + "&app_id=" + appId + "&page_no=1&page_size=1";
+    http2.begin(baijiaServerPath.c_str());
+    http2.GET();
+    String payload2 = http2.getString();
+    DynamicJsonDocument djd2(500);
+    deserializeJson(djd2, payload2);
+    JsonObject jsonObject2 = djd2.as<JsonObject>();
+    int baijiaCount = jsonObject2["data"]["page"]["total_count"];
+
+    display.print(baijiaCount);
+    display.update();
   }
 
-  display.setRotation(1);
-  display.fillScreen(0xFFFF);
+  //第5分钟置为0
+  if (partialTimes == 4)
+  {
+    partialTimes = 0;
+  }
+  else
+  {
+    partialTimes++;
+  }
 
-  display.drawBitmap(icon_flower_128128, 0, 0, 128, 128, 0xFFFF);
-
-  display.fillRect(128, 0, 168, 40, 0x0000);
-  display.setCursor(133, 26);
-  display.setFont(u8g2_font_wqy16_t_gb2312);
-  display.setBackgroundColor(0x0000);
-  display.setForegroundColor(0xFFFF);
-  display.println("BLab大熊实验室");
-
-  display.drawBitmap(icon_bilibili_4040, 133, 40, 40, 40, 0xFFFF);
-
-  display.setCursor(180, 66);
-  display.setFont(&FreeMonoBold18pt7b);
-  display.setTextColor(0x0000);
-  //请求粉丝数
-  HTTPClient http1;
-  String biliServerPath = "http://api.bilibili.com/x/relation/stat?vmid=" + vmId + "&jsonp=jsonp";
-  http1.begin(biliServerPath.c_str());
-  http1.GET();
-  String payload1 = http1.getString();
-  DynamicJsonDocument djd1(500);
-  deserializeJson(djd1, payload1);
-  JsonObject jsonObject1 = djd1.as<JsonObject>();
-  int biliCount = jsonObject1["data"]["follower"];
-  display.print(biliCount);
-
-  display.drawLine(128, 84, 296, 84, 0x0000);
-  display.drawBitmap(icon_baijia_4040, 133, 88, 40, 40, 0xFFFF);
-
-  display.setCursor(180, 120);
-  display.setFont(&FreeMonoBold18pt7b);
-  display.setTextColor(0x0000);
-  //百家号粉丝数
-  HTTPClient http2;
-  String baijiaServerPath = "http://baijiahao.baidu.com/builderinner/open/resource/query/fansListall?app_token=" + appToken + "&app_id=" + appId + "&page_no=1&page_size=1";
-  http2.begin(baijiaServerPath.c_str());
-  http2.GET();
-  String payload2 = http2.getString();
-  DynamicJsonDocument djd2(500);
-  deserializeJson(djd2, payload2);
-  JsonObject jsonObject2 = djd2.as<JsonObject>();
-  int baijiaCount = jsonObject2["data"]["page"]["total_count"];
-
-  display.print(baijiaCount);
-  display.update();
   if (!bleConnect)
   {
-    esp_sleep_enable_timer_wakeup(60 * 1000000ULL);
+    esp_sleep_enable_timer_wakeup(600 * 1000000ULL);
     esp_deep_sleep_start();
   }
 }
@@ -587,14 +642,18 @@ void setup()
   {
     //初始化蓝牙
     initBLE();
-    //初始化标记
-    inited = true;
     //初始化屏幕
     display.init();
-    //画主图
-    drawMainFrame();
-    //延迟1.5秒
-    delay(1500);
+    if (!inited)
+    {
+      //画主图
+      drawMainFrame();
+      //延迟1.5秒
+      delay(1500);
+      //初始化标记
+      inited = true;
+    }
+
     //读取配置文件
     String configJsonString = readProperties2();
     Serial.println(configJsonString);
@@ -602,7 +661,7 @@ void setup()
     if (configJsonString != "")
     {
       //解析配置
-      DynamicJsonDocument djd(1024);
+      DynamicJsonDocument djd(2048);
       deserializeJson(djd, configJsonString);
       JsonObject jsonObject = djd.as<JsonObject>();
       int type = jsonObject["type"];
@@ -623,7 +682,7 @@ void setup()
     {
       //显示未配置
       drawNotConfig();
-      //disableWiFi();
+      disableWiFi();
       if (!bleConnect)
       {
         // esp_sleep_enable_timer_wakeup(600 * uS_TO_S_FACTOR);
